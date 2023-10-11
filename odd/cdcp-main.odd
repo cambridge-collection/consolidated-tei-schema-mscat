@@ -4427,6 +4427,70 @@
                         </attList>
                     </elementSpec>
                     
+                    <!-- Include XInclude into our schema -->
+                    <elementSpec ident="include" ns="http://www.w3.org/2001/XInclude" mode="add">
+                        <desc xml:lang="en" versionDate="2014-01-12">The W3C XInclude element</desc>
+                        <classes>
+                            <memberOf key="model.common"/>
+                            <memberOf key="model.teiHeaderPart"/>
+                        </classes>
+                        <content>
+                            <elementRef key="fallback" minOccurs="0" maxOccurs="1"/>
+                        </content>
+                        <attList>
+                            <attDef ident="href">
+                                <desc xml:lang="en" versionDate="2014-01-12">pointer to the resource
+                                    being included</desc>
+                                <datatype>
+                                    <dataRef key="teidata.pointer"/>
+                                </datatype>
+                            </attDef>
+                            <attDef ident="parse" usage="opt">
+                                <defaultVal>xml</defaultVal>
+                                <valList type="closed">
+                                    <valItem ident="xml"/>
+                                    <valItem ident="text"/>
+                                </valList>
+                            </attDef>
+                            <attDef ident="xpointer" usage="opt">
+                                <datatype>
+                                    <dataRef key="teidata.text"/>
+                                </datatype>
+                            </attDef>
+                            <attDef ident="encoding" usage="opt">
+                                <datatype>
+                                    <dataRef key="teidata.text"/>
+                                </datatype>
+                            </attDef>
+                            <attDef ident="accept" usage="opt">
+                                <datatype>
+                                    <dataRef key="teidata.text"/>
+                                </datatype>
+                            </attDef>
+                            <attDef ident="accept-charset" usage="opt">
+                                <datatype>
+                                    <dataRef key="teidata.text"/>
+                                </datatype>
+                            </attDef>
+                            <attDef ident="accept-language" usage="opt">
+                                <datatype>
+                                    <dataRef key="teidata.text"/>
+                                </datatype>
+                            </attDef>
+                        </attList>
+                    </elementSpec>
+                    <elementSpec ident="fallback" ns="http://www.w3.org/2001/XInclude" mode="add">
+                        <desc xml:lang="en" versionDate="2014-01-12">Wrapper for fallback elements
+                            if an XInclude fails</desc>
+                        <content>
+                            <alternate>
+                                <textNode/>
+                                <anyElement/>
+                            </alternate>
+                        </content>
+                    </elementSpec>
+
+
                     <!-- allow accMat to contain msPart (commented out 15.1.19 -->
                     <!--<elementSpec ident="accMat" module="msdescription" mode="change">
                         <content>
@@ -4736,8 +4800,29 @@
                     <!-- ********************** -->
 
 
+                    <!-- The TEI element must have xml:id in the form "manuscript_1234" (except in Genizah where it must be "volume_5678") -->
                     <elementSpec ident="TEI" module="textstructure" mode="change">
-                        <!-- -->
+                        <constraintSpec scheme="schematron" ident="TEI.xmlid.check">
+                            <constraint>
+                                <sch:rule
+                                    context="tei:TEI">
+                                    <sch:assert 
+                                        test="matches(@xml:id, '^manuscript_\d+$') or contains(base-uri(.), 'genizah-mss')" 
+                                        role="fatal">
+                                        The root TEI element must have an @xml:id beginning with 
+                                        "manuscript_" then a number (which must also be unique 
+                                        across the entire catalogue).
+                                    </sch:assert>
+                                    <sch:assert 
+                                        test="matches(@xml:id, '^volume_\d+$') or not(contains(base-uri(.), 'genizah-mss'))" 
+                                        role="fatal">
+                                        The root TEI element must have an @xml:id beginning with
+                                        "volume_" then a number (which must also be unique 
+                                        across the entire catalogue).
+                                    </sch:assert>
+                                </sch:rule>
+                            </constraint>
+                        </constraintSpec>
                     </elementSpec>
 
                     <!-- author inside msItem must have @key -->
@@ -4919,7 +5004,7 @@
                         <constraintSpec ident="rend.info" scheme="schematron">
                             <constraint>
                                 <sch:rule 
-                                    context="*[@rend][not(self::tei:graphic)]">
+                                    context="*[@rend]">
                                     <sch:report 
                                         test="self::tei:hi and not(every $r in tokenize(@rend, '\s+')[string-length() gt 0] satisfies $r = ('bold', 'italic', 'smallcaps', 'roman', 'superscript', 'subscript', 'underline', 'overline', 'strikethrough'))"
                                         role="info">
@@ -5022,8 +5107,20 @@
                     </classSpec>
                   
                     
+                    <!-- Warn about a common typo -->
                     <elementSpec ident="surrogates" module="msdescription" mode="change">
-                        <!-- -->
+                        <constraintSpec ident="facsimile.warn" scheme="schematron">
+                            <constraint>
+                                <sch:rule 
+                                    context="//tei:surrogates/tei:bibl">
+                                    <sch:report 
+                                        test="contains(@type, 'fascimile')"
+                                        role="warn">
+                                        The type attribute of "<sch:value-of select="@type"/>" contains a typo (fascimile should be facsimile).
+                                    </sch:report>
+                                </sch:rule>
+                            </constraint>
+                        </constraintSpec>
                     </elementSpec>
                     
                     <!-- dimensions must have unit attribute -->
